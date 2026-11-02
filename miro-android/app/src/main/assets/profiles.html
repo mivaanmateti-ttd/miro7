@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Profiles</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:15px system-ui,Arial,sans-serif;background:#f8fafc;color:#0f172a}
+header{position:sticky;top:0;background:#1e3a8a;color:#fff;padding:12px 14px;display:flex;gap:8px;align-items:center;z-index:2}
+header h1{font-size:19px;margin:0;flex:1}
+button{border:0;border-radius:9px;padding:9px 12px;font:600 14px system-ui,Arial,sans-serif;background:#e2e8f0;color:#1e3a8a}
+button.primary{background:#fff;color:#1e3a8a}
+button.danger{color:#b91c1c}
+main{padding:12px}
+label{display:block;font-size:12px;font-weight:700;color:#475569;margin:10px 0 3px}
+input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font:15px system-ui,Arial,sans-serif}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:10px 12px;margin:10px 0}
+.row{display:flex;gap:8px}.row>*{flex:1}
+h2{font-size:14px;margin:16px 0 0;color:#1e3a8a;text-transform:uppercase;letter-spacing:.04em}
+.top{display:flex;gap:8px;margin-bottom:6px}.top select{flex:1}
+</style></head><body>
+<header><h1>Miro profiles</h1><button class="primary" id="save">Save</button></header>
+<main>
+<div class="top"><select id="pick"></select><button id="new">+ New</button><button id="del" class="danger">Delete</button></div>
+<div id="form"></div>
+</main>
+<script>
+var data=[];var cur=0;
+try{data=JSON.parse(MiroProfiles.load()||'[]');}catch(e){data=[];}
+if(!data.length)data=[blank()];
+function blank(){return{name:'Profile',email:'',mobile:'',city:'',state:'',country:'India',pin:'',gothram:'',members:[{name:'',age:'',gender:'',idType:'Aadhaar Card',idNumber:''}]};}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function field(k,l,t){return '<label>'+l+'<input data-k="'+k+'" type="'+(t||'text')+'" value="'+esc(data[cur][k])+'"></label>';}
+function render(){
+  var p=data[cur];
+  document.getElementById('pick').innerHTML=data.map(function(d,i){return '<option value="'+i+'"'+(i==cur?' selected':'')+'>'+esc(d.name||('Profile '+(i+1)))+'</option>';}).join('');
+  var h=field('name','Profile name')+'<h2>Contact</h2>'+field('email','Email','email')+field('mobile','Mobile','tel')+
+   '<div class="row"><div>'+field('city','City')+'</div><div>'+field('state','State')+'</div></div>'+
+   '<div class="row"><div>'+field('country','Country')+'</div><div>'+field('pin','PIN code')+'</div></div>'+field('gothram','Other (optional)')+'<h2>Members</h2>';
+  p.members.forEach(function(m,i){
+    h+='<div class="card"><b>Member '+(i+1)+'</b>'+
+    '<label>Full name<input data-m="'+i+'" data-k="name" value="'+esc(m.name)+'"></label>'+
+    '<div class="row"><div><label>Age<input data-m="'+i+'" data-k="age" inputmode="numeric" value="'+esc(m.age)+'"></label></div>'+
+    '<div><label>Gender<select data-m="'+i+'" data-k="gender">'+['','Male','Female','Other'].map(function(g){return '<option'+(g==m.gender?' selected':'')+'>'+g+'</option>';}).join('')+'</select></label></div></div>'+
+    '<div class="row"><div><label>ID type<select data-m="'+i+'" data-k="idType">'+['Aadhaar Card','Passport'].map(function(g){return '<option'+(g==m.idType?' selected':'')+'>'+g+'</option>';}).join('')+'</select></label></div>'+
+    '<div><label>ID number<input data-m="'+i+'" data-k="idNumber" value="'+esc(m.idNumber)+'"></label></div></div>'+
+    (p.members.length>1?'<button class="danger" data-rm="'+i+'" style="margin-top:8px">Remove</button>':'')+'</div>';
+  });
+  h+='<button id="addm">+ Add member</button><p style="font-size:12px;color:#64748b">Profiles stay on this phone only.</p>';
+  document.getElementById('form').innerHTML=h;
+}
+document.addEventListener('input',function(e){
+  var t=e.target,k=t.dataset.k;if(!k)return;
+  if(t.dataset.m!==undefined)data[cur].members[+t.dataset.m][k]=t.value;else data[cur][k]=t.value;
+});
+document.addEventListener('change',function(e){var t=e.target;
+  if(t.id==='pick'){cur=+t.value;render();}
+  else if(t.dataset&&t.dataset.k&&t.dataset.m!==undefined)data[cur].members[+t.dataset.m][t.dataset.k]=t.value;});
+document.addEventListener('click',function(e){var t=e.target;
+  if(t.id==='addm'){data[cur].members.push({name:'',age:'',gender:'',idType:'Aadhaar Card',idNumber:''});render();}
+  if(t.dataset&&t.dataset.rm!==undefined){data[cur].members.splice(+t.dataset.rm,1);render();}
+  if(t.id==='new'){data.push(blank());data[data.length-1].name='Profile '+data.length;cur=data.length-1;render();}
+  if(t.id==='del'){if(data.length>1&&confirm('Delete this profile?')){data.splice(cur,1);cur=0;render();}}
+  if(t.id==='save'){MiroProfiles.save(JSON.stringify(data));MiroProfiles.close();}
+});
+render();
+</script></body></html>
